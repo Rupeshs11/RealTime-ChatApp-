@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>knox : Lobby</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="chat-container">
+        <header>
+            <h1>Knox Chat</h1>
+            <p>You are : <span id="nickname-display">{{nickname}}</span> in room: <span id="room-display">{{room}}</span></p>
+            <a href="{{ url_for('index')}}" class="leave-button">Leave chat</a>
+        </header>
+
+        <div class="chat-messages" id="chat-messages">
+            </div>
+        
+        <form id="message-form" class="message-input-form">
+            <input type="text" id="message-input" placeholder="Whisper your thoughts...." autocomplete="off" autofocus>
+            <button type="submit">Send Echo</button>
+        </form>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+    <script src="{{ url_for('static',filename='scripts.js') }}"></script>
+</body>
+</html>
