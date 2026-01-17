@@ -13,6 +13,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Stop existing app on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 2m
+          script: |
+            # Kill existing app first
+            pkill -f "python3 app.py" || true
+            sleep 2
+            echo "✅ Existing app stopped"
+
       - name: Copy project files to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -23,7 +36,7 @@ jobs:
           target: ~/RealTime_ChatApp
           overwrite: true
 
-      - name: Setup and deploy on EC2
+      - name: Install dependencies on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -31,25 +44,42 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           command_timeout: 10m
           script: |
-            # Install required packages
-            sudo apt-get update
-            sudo apt-get install -y python3-venv python3-pip python3-full
+            # Install system packages if needed
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq python3-venv python3-pip python3-full
 
-            # Navigate to project folder
             cd /home/ubuntu/RealTime_ChatApp
 
-            # Remove old venv and create fresh one
-            rm -rf venv
-            python3 -m venv venv
+            # Create venv only if it doesn't exist
+            if [ ! -d "venv" ]; then
+              python3 -m venv venv
+            fi
 
-            # Use venv's pip directly (not source activate)
-            /home/ubuntu/RealTime_ChatApp/venv/bin/pip install --upgrade pip
-            /home/ubuntu/RealTime_ChatApp/venv/bin/pip install -r requirements.txt
+            # Install/update dependencies
+            /home/ubuntu/RealTime_ChatApp/venv/bin/pip install -q --upgrade pip
+            /home/ubuntu/RealTime_ChatApp/venv/bin/pip install -q -r requirements.txt
 
-            # Stop existing app if running
-            pkill -f "python3 app.py" || true
+            echo "✅ Dependencies installed"
 
-            # Start app in background using venv's python
+      - name: Start app on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 1m
+          script: |
+            cd /home/ubuntu/RealTime_ChatApp
+
+            # Start app in background
             nohup /home/ubuntu/RealTime_ChatApp/venv/bin/python3 app.py > output.log 2>&1 &
 
-            echo "✅ Deployment complete! App is running."
+            # Wait and verify app started
+            sleep 3
+            if pgrep -f "python3 app.py" > /dev/null; then
+              echo "✅ App is running!"
+            else
+              echo "❌ App failed to start"
+              cat output.log
+              exit 1
+            fi
