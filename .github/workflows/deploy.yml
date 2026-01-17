@@ -19,46 +19,39 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "app.py,requirements.txt,templates,static"
+          source: "app.py,requirements.txt,templates,static,start.sh"
           target: ~/RealTime_ChatApp
           overwrite: true
 
-      - name: Deploy and restart app
-        continue-on-error: true
+      - name: Setup environment
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           command_timeout: 10m
-          script_stop: false
           script: |
-            set +e
-
-            # Install system packages
             sudo apt-get update -qq
             sudo apt-get install -y -qq python3-venv python3-pip python3-full
 
             cd /home/ubuntu/RealTime_ChatApp
 
-            # Create venv if not exists
             if [ ! -d "venv" ]; then
               python3 -m venv venv
             fi
 
-            # Install dependencies
             /home/ubuntu/RealTime_ChatApp/venv/bin/pip install -q --upgrade pip
             /home/ubuntu/RealTime_ChatApp/venv/bin/pip install -q -r requirements.txt
 
-            # Stop existing app
-            pkill -f "python3 app.py" 2>/dev/null || true
-            sleep 2
+            chmod +x start.sh
 
-            # Start new app
+      - name: Start app
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 30s
+          script: |
             cd /home/ubuntu/RealTime_ChatApp
-            nohup /home/ubuntu/RealTime_ChatApp/venv/bin/python3 app.py > output.log 2>&1 &
-            disown
-
-            sleep 2
-            echo "✅ Deployment complete!"
-            exit 0
+            bash start.sh
