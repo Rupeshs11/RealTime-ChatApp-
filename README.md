@@ -16,7 +16,7 @@ A real-time chat application built with Flask and Socket.IO, deployed on AWS EC2
 
 | Upload Page                                             | File List                                             | 
 |---------------------------------------------------------|-------------------------------------------------------|
-| ![Upload](screenshots/home.png)                         | ![Files](screenshots/chat.png)                          | 
+| ![Home](screenshots/home.png)                         | ![Chats](screenshots/chat.png)                          | 
 
 
 ## 🛠️ Tech Stack
