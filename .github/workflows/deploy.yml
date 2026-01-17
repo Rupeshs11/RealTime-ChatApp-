@@ -1,0 +1,52 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy entire project to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "."
+          target: ~/RealTime_ChatApp
+          overwrite: true
+
+      - name: Setup and deploy on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Navigate to project folder
+            cd ~/RealTime_ChatApp
+
+            # Create virtual environment if not exists
+            if [ ! -d "venv" ]; then
+              python3 -m venv venv
+            fi
+
+            # Activate venv and install dependencies
+            source venv/bin/activate
+            pip install --upgrade pip
+            pip install -r requirements.txt
+
+            # Stop existing app if running
+            pkill -f "python3 app.py" || true
+
+            # Start app in background
+            nohup python3 app.py > output.log 2>&1 &
+
+            echo "✅ Deployment complete! App is running."
