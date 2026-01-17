@@ -24,6 +24,7 @@ jobs:
           overwrite: true
 
       - name: Deploy and restart app
+        continue-on-error: true
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
