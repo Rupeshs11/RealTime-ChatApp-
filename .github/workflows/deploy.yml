@@ -30,27 +30,25 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # Install python3-venv if not already installed
+            # Install required packages
             sudo apt-get update
-            sudo apt-get install -y python3-venv python3-pip
+            sudo apt-get install -y python3-venv python3-pip python3-full
 
             # Navigate to project folder
-            cd ~/RealTime_ChatApp
+            cd /home/ubuntu/RealTime_ChatApp
 
-            # Create virtual environment if not exists
-            if [ ! -d "venv" ]; then
-              python3 -m venv venv
-            fi
+            # Remove old venv and create fresh one
+            rm -rf venv
+            python3 -m venv venv
 
-            # Activate venv and install dependencies
-            source venv/bin/activate
-            pip install --upgrade pip
-            pip install -r requirements.txt
+            # Use venv's pip directly (not source activate)
+            /home/ubuntu/RealTime_ChatApp/venv/bin/pip install --upgrade pip
+            /home/ubuntu/RealTime_ChatApp/venv/bin/pip install -r requirements.txt
 
             # Stop existing app if running
             pkill -f "python3 app.py" || true
 
-            # Start app in background
-            nohup python3 app.py > output.log 2>&1 &
+            # Start app in background using venv's python
+            nohup /home/ubuntu/RealTime_ChatApp/venv/bin/python3 app.py > output.log 2>&1 &
 
             echo "✅ Deployment complete! App is running."
