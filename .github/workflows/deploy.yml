@@ -56,6 +56,8 @@ jobs:
             # Start new app
             cd /home/ubuntu/RealTime_ChatApp
             nohup /home/ubuntu/RealTime_ChatApp/venv/bin/python3 app.py > output.log 2>&1 &
+            disown
 
-            sleep 3
+            sleep 2
             echo "✅ Deployment complete!"
+            exit 0
