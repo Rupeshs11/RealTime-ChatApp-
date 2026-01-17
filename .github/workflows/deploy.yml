@@ -30,6 +30,10 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            # Install python3-venv if not already installed
+            sudo apt-get update
+            sudo apt-get install -y python3-venv python3-pip
+
             # Navigate to project folder
             cd ~/RealTime_ChatApp
 
