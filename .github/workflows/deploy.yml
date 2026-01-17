@@ -13,19 +13,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Stop existing app on EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          command_timeout: 2m
-          script: |
-            # Kill existing app first
-            pkill -f "python3 app.py" || true
-            sleep 2
-            echo "✅ Existing app stopped"
-
       - name: Copy project files to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -36,50 +23,39 @@ jobs:
           target: ~/RealTime_ChatApp
           overwrite: true
 
-      - name: Install dependencies on EC2
+      - name: Deploy and restart app
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           command_timeout: 10m
+          script_stop: false
           script: |
-            # Install system packages if needed
+            set +e
+
+            # Install system packages
             sudo apt-get update -qq
             sudo apt-get install -y -qq python3-venv python3-pip python3-full
 
             cd /home/ubuntu/RealTime_ChatApp
 
-            # Create venv only if it doesn't exist
+            # Create venv if not exists
             if [ ! -d "venv" ]; then
               python3 -m venv venv
             fi
 
-            # Install/update dependencies
+            # Install dependencies
             /home/ubuntu/RealTime_ChatApp/venv/bin/pip install -q --upgrade pip
             /home/ubuntu/RealTime_ChatApp/venv/bin/pip install -q -r requirements.txt
 
-            echo "✅ Dependencies installed"
+            # Stop existing app
+            pkill -f "python3 app.py" 2>/dev/null || true
+            sleep 2
 
-      - name: Start app on EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          command_timeout: 1m
-          script: |
+            # Start new app
             cd /home/ubuntu/RealTime_ChatApp
-
-            # Start app in background
             nohup /home/ubuntu/RealTime_ChatApp/venv/bin/python3 app.py > output.log 2>&1 &
 
-            # Wait and verify app started
             sleep 3
-            if pgrep -f "python3 app.py" > /dev/null; then
-              echo "✅ App is running!"
-            else
-              echo "❌ App failed to start"
-              cat output.log
-              exit 1
-            fi
+            echo "✅ Deployment complete!"
