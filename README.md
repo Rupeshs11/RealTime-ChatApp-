@@ -1,11 +1,6 @@
-# 💬 Knox Chat - Real-Time Chat App
+# 💬 Knox Chat - Real-Time Chat App with CI/CD Pipelines
 
 A real-time chat application built with Flask and Socket.IO, deployed on AWS EC2 with automated CI/CD.
-
-![Python](https://img.shields.io/badge/Python-3.12-blue.svg)
-![Flask](https://img.shields.io/badge/Flask-3.0-green.svg)
-![AWS](https://img.shields.io/badge/AWS-EC2-orange.svg)
-![CI/CD](https://img.shields.io/badge/CI/CD-GitHub_Actions-purple.svg)
 
 ## ✨ Features
 
@@ -15,6 +10,14 @@ A real-time chat application built with Flask and Socket.IO, deployed on AWS EC2
 - 🔔 **Join/Leave notifications** — Know when users enter or exit
 - 🌙 **WhatsApp-style dark theme** — Clean modern UI
 - 🚀 **Auto-deploy** — Push to GitHub and it deploys automatically
+
+  
+## 📸 Screenshots
+
+| Upload Page                                             | File List                                             | 
+|---------------------------------------------------------|-------------------------------------------------------|
+| ![Upload](screenshots/home.png)                       | ![Files](screenshots/chat.png)                          | 
+
 
 ## 🛠️ Tech Stack
 
@@ -54,25 +57,6 @@ Open `http://localhost:5000` in your browser.
 
 Every push to `main` branch automatically deploys to EC2 via GitHub Actions.
 
-**Required GitHub Secrets:**
-| Secret        | Value                        |
-|---------------|------------------------------|
-| `EC2_HOST`    | Your EC2 public IP           |
-| `EC2_SSH_KEY` | Contents of your .pem file   |
-
-### Manual Setup
-
-1. Launch EC2 (Ubuntu 22.04, t2.micro)
-2. Open port 5000 in Security Group
-3. SSH and run:
-
-```bash
-sudo apt update && sudo apt install python3 python3-pip python3-venv -y
-cd ~/RealTime_ChatApp
-python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-bash start.sh
-```
 
 ## 📁 Project Structure
 
