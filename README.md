@@ -1,13 +1,16 @@
 # 💬 Knox Chat — Real-Time Chat Application
 
-A production-ready real-time chat app built with **Flask**, **Socket.IO**, and **MongoDB**, containerized with **Docker**, orchestrated on **Kubernetes (Minikube)**, and deployed via **CI/CD** with **GitHub Actions**.
+A production-ready real-time chat app built with **Flask**, **Socket.IO**, and **MongoDB**, containerized with **Docker**, orchestrated on **Kubernetes (Minikube)**, and deployed to **AWS EC2** with **Nginx SSL** via **CI/CD**.
 
 ![Python](https://img.shields.io/badge/Python-3.10-blue?logo=python&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-3.0-green?logo=flask&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-4.6-brightgreen?logo=mongodb&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?logo=docker&logoColor=white)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-Orchestrated-326CE5?logo=kubernetes&logoColor=white)
+![Nginx](https://img.shields.io/badge/Nginx-SSL_Proxy-009639?logo=nginx&logoColor=white)
 ![CI/CD](https://img.shields.io/badge/CI/CD-GitHub_Actions-purple?logo=githubactions&logoColor=white)
+
+🌐 **Live:** [https://knoxcloud.tech](https://knoxcloud.tech)
 
 ---
 
@@ -16,12 +19,13 @@ A production-ready real-time chat app built with **Flask**, **Socket.IO**, and *
 - 💬 **Real-time messaging** — Instant message delivery via WebSockets
 - 🔐 **User authentication** — Signup / Login with hashed passwords
 - 🏠 **Chat rooms** — Create or join any room
-- 📜 **Persistent messages** — Chat history stored in MongoDB (last 50 loaded on join)
+- 📜 **Persistent messages** — Chat history stored in MongoDB
 - 🌙 **WhatsApp-style dark theme** — Clean, modern UI
 - 🐳 **Dockerized** — One-command deployment with Docker Compose
 - ☸️ **Kubernetes ready** — Full K8s manifests with Ingress, PV/PVC, ConfigMaps, Secrets
+- 🔒 **SSL/HTTPS** — Nginx reverse proxy with Let's Encrypt
 - 📊 **Monitoring** — Grafana dashboard for cluster observability
-- 🚀 **CI/CD** — Automated deployment via GitHub Actions
+- 🚀 **CI/CD** — Two-stage pipeline (Build → Deploy)
 
 ---
 
@@ -34,9 +38,12 @@ A production-ready real-time chat app built with **Flask**, **Socket.IO**, and *
 | **Auth**             | Werkzeug (password hashing)   |
 | **Frontend**         | HTML, CSS, JavaScript         |
 | **Containerization** | Docker, Docker Compose        |
+| **Reverse Proxy**    | Nginx (SSL termination)       |
 | **Orchestration**    | Kubernetes (Minikube)         |
 | **Monitoring**       | Grafana                       |
-| **CI/CD**            | GitHub Actions                |
+| **CI/CD**            | GitHub Actions (2 pipelines)  |
+| **Cloud**            | AWS EC2                       |
+| **Domain**           | knoxcloud.tech                |
 
 ---
 
@@ -56,7 +63,7 @@ A production-ready real-time chat app built with **Flask**, **Socket.IO**, and *
 │   ┌───────────────────┐         ┌───────────────────┐      │
 │   │ 🔐 Auth           │         │ 📦 mongo:latest   │      │
 │   │ 💬 Socket.IO      │────────▶│ 🔌 Port: 27017   │      │
-│   │ � WebSocket      │◀────────│ 💾 PV / PVC      │      │
+│   │ 📡 WebSocket      │◀────────│ 💾 PV / PVC      │      │
 │   │ 🔄 Replicas: 2    │         │    (5Gi Storage)  │      │
 │   └───────────────────┘         └───────────────────┘      │
 │            │                             │                  │
@@ -69,9 +76,33 @@ A production-ready real-time chat app built with **Flask**, **Socket.IO**, and *
         (rupeshs11/knox-chat)         (CI/CD Pipeline)
 ```
 
+**EC2 Production Setup:**
+
+```
+  🌍 knoxcloud.tech
+         │
+         ▼
+┌──────────────────────────────────────────────┐
+│  🖥️  AWS EC2 Instance                       │
+│                                              │
+│   🔒 Nginx (SSL)                             │
+│   ┌────────────────────────────────────┐     │
+│   │  :443 ──▶ knox-chat:5000           │     │
+│   │  :80  ──▶ redirect to HTTPS        │     │
+│   │  WebSocket proxy for Socket.IO     │     │
+│   └────────────────────────────────────┘     │
+│        │                                     │
+│        ▼                                     │
+│   🐍 Flask App          🍃 MongoDB           │
+│   (Docker Container)    (Docker Container)   │
+│                         💾 Volume: mongo-data │
+│                                              │
+└──────────────────────────────────────────────┘
+```
+
 ---
 
-## � App Screenshots
+## 📸 App Screenshots
 
 |           Login Page           |           Chat Room           |
 | :----------------------------: | :---------------------------: |
@@ -79,76 +110,161 @@ A production-ready real-time chat app built with **Flask**, **Socket.IO**, and *
 
 ---
 
+## 🚀 CI/CD Pipeline
+
+Two separate GitHub Actions workflows:
+
+| Pipeline          | Trigger              | What it does                                       |
+| ----------------- | -------------------- | -------------------------------------------------- |
+| **Build & Push**  | Push to `main`       | Builds Docker image → Pushes to Docker Hub         |
+| **Deploy to EC2** | After build succeeds | Copies configs → Pulls image → Restarts containers |
+
+```
+  git push ──▶ Pipeline 1: Build Image ──▶ Pipeline 2: Deploy to EC2
+                 📦 Docker Hub                 🖥️ docker compose up
+```
+
+---
+
 ## 🚀 Deployment Guide
 
-### Step 1: Clone the Repository
+### Option 1: Local Development
 
 ```bash
 git clone https://github.com/Rupeshs11/RealTime-ChatApp-.git
 cd RealTime-ChatApp-
+
+python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+
+echo "MONGO_URI=mongodb://localhost:27017/knox_chat" > .env
+echo "SECRET_KEY=your-secret-key" >> .env
+
+python app.py
 ```
+
+Open `http://localhost:5000`
 
 ---
 
-### Step 2: Build & Push Docker Image
+### Option 2: Docker Compose (Local)
 
 ```bash
-# Build the image
+docker-compose up -d
+```
+
+Open `http://localhost:5000`
+
+---
+
+### Option 3: EC2 Production (with SSL)
+
+#### Step 1: Build & Push Docker Image
+
+```bash
 docker build -t rupeshs11/knox-chat:latest .
-
-# Login to Docker Hub
 docker login
-
-# Push to Docker Hub
 docker push rupeshs11/knox-chat:latest
 ```
 
----
-
-### Step 3: Start Minikube Cluster
+#### Step 2: Setup EC2 Instance
 
 ```bash
-# Start minikube
-minikube start --driver=docker
+# SSH into EC2
+ssh -i "your-key.pem" ubuntu@<EC2-IP>
 
-# Enable required addons
-minikube addons enable ingress
-minikube addons enable storage-provisioner
+# Install Docker
+sudo apt-get update
+sudo apt-get install -y docker.io docker-compose-plugin
+sudo usermod -aG docker ubuntu
 ```
+
+#### Step 3: Point Domain to EC2
+
+In your DNS provider, add an **A Record**:
+
+```
+knoxcloud.tech  →  <EC2-Public-IP>
+```
+
+#### Step 4: Get SSL Certificate
+
+```bash
+sudo apt-get install -y certbot
+sudo certbot certonly --standalone -d knoxcloud.tech -d www.knoxcloud.tech
+```
+
+#### Step 5: Copy Files & Deploy
+
+```bash
+# Copy files to EC2
+scp -i "your-key.pem" docker-compose.prod.yml ubuntu@<EC2-IP>:~/knoxchat/
+scp -i "your-key.pem" -r nginx/ ubuntu@<EC2-IP>:~/knoxchat/
+
+# SSH and deploy
+ssh -i "your-key.pem" ubuntu@<EC2-IP>
+cd ~/knoxchat
+
+# Create .env
+echo "MONGO_URI=mongodb://mongodb:27017/knox_chat" > .env
+echo "SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_hex(32))')" >> .env
+echo "DB_NAME=knox_chat" >> .env
+
+# Start everything
+docker compose -f docker-compose.prod.yml up -d
+```
+
+#### Step 6: Verify
+
+```bash
+# Check all containers
+docker compose -f docker-compose.prod.yml ps
+
+# Check logs
+docker compose -f docker-compose.prod.yml logs knox-chat
+
+# Test SSL
+curl -I https://knoxcloud.tech
+```
+
+Open **https://knoxcloud.tech** 🎉
 
 ---
 
-### Step 4: Create Namespace
+### Option 4: Kubernetes (Minikube)
+
+#### Step 1: Start Minikube
+
+```bash
+minikube start --driver=docker
+minikube addons enable ingress
+```
+
+#### Step 2: Create Namespace
 
 ```bash
 kubectl apply -f k8s/namespace.yml
-
-# Verify
 kubectl get namespaces
 ```
 
----
-
-### Step 5: Apply ConfigMap & Secrets
+#### Step 3: Apply ConfigMap & Secrets
 
 ```bash
 kubectl apply -f k8s/configmap.yml
 kubectl apply -f k8s/secrets.yml
 
-# Verify
 kubectl get configmap -n knoxchat
 kubectl get secrets -n knoxchat
 ```
 
-> 💡 **Generate a secret key:**
+> 💡 **Generate base64 secret:**
 >
 > ```bash
-> python -c "import secrets; print(secrets.token_hex(32))"
+> python -c "import secrets; print(secrets.token_hex(32))" | base64
 > ```
 
----
-
-### Step 6: Deploy MongoDB with Persistent Storage
+#### Step 4: Deploy MongoDB
 
 ```bash
 kubectl apply -f k8s/mongo-pv.yml
@@ -156,67 +272,44 @@ kubectl apply -f k8s/mongo-pvc.yml
 kubectl apply -f k8s/mongo-deployment.yml
 kubectl apply -f k8s/mongo-service.yml
 
-# Verify MongoDB is running
 kubectl get pods -n knoxchat
-kubectl get svc -n knoxchat
 ```
 
----
-
-### Step 7: Deploy Knox Chat Application
+#### Step 5: Deploy Knox Chat
 
 ```bash
 kubectl apply -f k8s/knoxchat-deployment.yml
 kubectl apply -f k8s/knoxchat-service.yml
 
-# Verify pods are running
 kubectl get pods -n knoxchat
-
-# Check logs
 kubectl logs -l app=knoxchat -n knoxchat --tail=20
 ```
 
----
-
-### Step 8: Apply Ingress
+#### Step 6: Apply Ingress
 
 ```bash
 kubectl apply -f k8s/ingress.yml
-
-# Verify ingress has an ADDRESS
 kubectl get ingress -n knoxchat
 ```
 
----
+#### Step 7: Update Hosts & Tunnel
 
-### Step 9: Update Hosts File
-
-Add this entry to your hosts file:
-
-**Windows:** `C:\Windows\System32\drivers\etc\hosts`
-**Linux/Mac:** `/etc/hosts`
+Add to hosts file (`C:\Windows\System32\drivers\etc\hosts`):
 
 ```
 127.0.0.1 knoxchat.com
 ```
 
----
-
-### Step 10: Start Minikube Tunnel
-
 ```bash
-# Run in a separate terminal
+# Run in separate terminal
 minikube tunnel
 ```
 
-Now open **http://knoxchat.com** in your browser 🎉
+Open **http://knoxchat.com** 🎉
 
----
-
-### Step 11: Verify Database Connection
+#### Step 8: Verify Database
 
 ```bash
-# Exec into MongoDB pod
 kubectl exec -it $(kubectl get pod -n knoxchat -l app=mongo -o name) -n knoxchat -- mongosh
 
 # Inside mongosh
@@ -226,21 +319,15 @@ db.users.find()
 db.messages.find()
 ```
 
----
-
-### Step 12: Test Self-Healing
+#### Step 9: Test Self-Healing
 
 ```bash
-# Scale to 2 replicas
 kubectl scale deployment knoxchat-deployment --replicas=2 -n knoxchat
-
-# Watch pods
 kubectl get pods -n knoxchat --watch
 
-# Delete a pod to test recovery
+# Delete a pod
 kubectl delete pod <pod-name> -n knoxchat
-
-# K8s auto-creates a new pod to maintain 2 replicas ✅
+# K8s auto-creates a new pod ✅
 ```
 
 ---
@@ -259,25 +346,28 @@ Grafana dashboards for cluster monitoring:
 
 ```
 RealTime-ChatApp/
-├── app.py                    # Flask app with auth + Socket.IO
-├── config.py                 # Environment config loader
-├── requirements.txt          # Python dependencies
-├── Dockerfile                # Container image definition
-├── docker-compose.yml        # Multi-container setup (local)
-├── start.sh                  # App startup script
-├── .env.example              # Environment variables template
+├── app.py                        # Flask app with auth + Socket.IO
+├── config.py                     # Environment config loader
+├── requirements.txt              # Python dependencies
+├── Dockerfile                    # Container image definition
+├── docker-compose.yml            # Local multi-container setup
+├── docker-compose.prod.yml       # Production setup (Nginx + SSL)
+├── .env.example                  # Environment variables template
+│
+├── nginx/                        # Nginx reverse proxy config
+│   └── nginx.conf                # SSL + WebSocket proxy
 │
 ├── templates/
-│   ├── login.html            # Login page
-│   ├── signup.html           # Signup page
-│   ├── index.html            # Room selection page
-│   └── chat.html             # Chat room page
+│   ├── login.html                # Login page
+│   ├── signup.html               # Signup page
+│   ├── index.html                # Room selection page
+│   └── chat.html                 # Chat room page
 │
 ├── static/
-│   ├── style.css             # WhatsApp dark theme
-│   └── scripts.js            # Client-side Socket.IO logic
+│   ├── style.css                 # WhatsApp dark theme
+│   └── scripts.js                # Client-side Socket.IO logic
 │
-├── k8s/                      # Kubernetes manifests
+├── k8s/                          # Kubernetes manifests
 │   ├── namespace.yml
 │   ├── configmap.yml
 │   ├── secrets.yml
@@ -289,10 +379,11 @@ RealTime-ChatApp/
 │   ├── knoxchat-service.yml
 │   └── ingress.yml
 │
-├── grafana-stats/            # Monitoring screenshots
+├── .github/workflows/            # CI/CD pipelines
+│   ├── docker-build.yml          # Pipeline 1: Build & Push image
+│   └── deploy-ec2.yml            # Pipeline 2: Deploy to EC2
 │
-├── .github/workflows/
-│   └── deploy.yml            # CI/CD pipeline
+├── grafana-stats/                # Monitoring screenshots
 │
 └── screenshots/
     ├── home.png
@@ -324,6 +415,16 @@ RealTime-ChatApp/
 | `MONGO_URI`  | MongoDB connection string            |
 | `SECRET_KEY` | Flask session secret key             |
 | `DB_NAME`    | Database name (default: `knox_chat`) |
+
+#### GitHub Secrets Required
+
+| Secret            | Description                  |
+| ----------------- | ---------------------------- |
+| `DOCKER_USERNAME` | Docker Hub username          |
+| `DOCKER_PASSWORD` | Docker Hub password/token    |
+| `EC2_HOST`        | EC2 public IP address        |
+| `EC2_SSH_KEY`     | EC2 private key (PEM format) |
+| `SECRET_KEY`      | Flask session secret         |
 
 ---
 
