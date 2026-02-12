@@ -336,4 +336,3 @@ RealTime-ChatApp/
 
 ---
 
-**Created for fun by Knox** 💚
