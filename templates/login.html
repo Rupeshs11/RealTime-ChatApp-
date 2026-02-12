@@ -4,14 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Knox Chat - Join Room</title>
+    <title>Knox Chat - Login</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
     <div class="container">
         <h1>Knox Chat</h1>
-        <p class="tagline">Hey {{ username }}! Choose a room to join</p>
+        <p class="tagline">Login to continue</p>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -24,17 +24,20 @@
         {% endwith %}
 
         <form method="POST" class="join-form">
-            <label for="room">Enter the room name</label>
-            <input type="text" id="room" name="room" placeholder="e.g., SSBT, Hao re bho, 6162" required autofocus>
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" placeholder="Enter your username" required autofocus>
 
-            <button type="submit">Enter the chat room</button>
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" placeholder="Enter your password" required>
+
+            <button type="submit">Login</button>
         </form>
 
         <p class="auth-link">
-            Not you? <a href="{{ url_for('logout') }}">Logout</a>
+            Don't have an account? <a href="{{ url_for('signup') }}">Sign up</a>
         </p>
 
-        <p class="footer-note">Created for fun by Knox<br>keep chatting</p>
+        <p class="footer-note">Created for fun by Knox</p>
     </div>
 </body>
 

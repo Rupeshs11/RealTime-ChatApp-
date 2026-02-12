@@ -34,3 +34,9 @@ Thumbs.db
 
 # Agent workflows (local only)
 .agent/
+
+# Build
+.dist/
+
+# Minikube manifest (old, moved to k8s/)
+minikube-manifest/

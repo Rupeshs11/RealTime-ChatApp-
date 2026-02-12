@@ -1,0 +1,30 @@
+version: '3.8'
+services:
+    mongodb:
+      image: mongo:latest
+      ports:
+          - "27017:27017"
+      volumes:
+          - mongo-data:/data/db
+      networks:
+          - knox-chatapp
+  
+    knox-chat:
+        image: rupeshs11/knox-chat:latest
+        ports:
+            - "5000:5000"
+        environment:
+            - MONGO_URI=mongodb://mongodb:27017/knox_chat
+            - SECRET_KEY=knox-chat-secret-key-change-me
+            - DB_NAME=knox_chat
+        depends_on:
+          - mongodb
+        networks:
+            - knox-chatapp
+
+volumes:
+    mongo-data:
+
+networks:
+    knox-chatapp:
+        driver: bridge

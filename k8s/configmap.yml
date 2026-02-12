@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: knoxchat-config
+  namespace: knoxchat
+data:
+  MONGO_URI: mongodb://mongo-service:27017/knox_chat
+  DB_NAME: knox_chat

@@ -16,7 +16,7 @@ body {
     min-height: 100vh;
 }
 
-/* --- Join Page --- */
+/* --- Auth & Join Pages --- */
 .container {
     background-color: #1f2c34;
     padding: 40px;
@@ -52,7 +52,8 @@ label {
     font-size: 0.85em;
 }
 
-input[type="text"] {
+input[type="text"],
+input[type="password"] {
     padding: 14px 16px;
     background-color: #2a3942;
     border: none;
@@ -64,12 +65,14 @@ input[type="text"] {
     font-family: inherit;
 }
 
-input[type="text"]:focus {
+input[type="text"]:focus,
+input[type="password"]:focus {
     outline: none;
     border-bottom-color: #00a884;
 }
 
-input[type="text"]::placeholder {
+input[type="text"]::placeholder,
+input[type="password"]::placeholder {
     color: #8696a0;
 }
 
@@ -89,6 +92,24 @@ button[type="submit"] {
 
 button[type="submit"]:hover {
     background-color: #25d366;
+}
+
+/* Auth links */
+.auth-link {
+    margin-top: 20px;
+    font-size: 0.85em;
+    color: #8696a0;
+}
+
+.auth-link a {
+    color: #00a884;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.auth-link a:hover {
+    text-decoration: underline;
+    color: #25d366;
 }
 
 /* Flash messages */
@@ -155,10 +176,27 @@ button[type="submit"]:hover {
     color: #8696a0;
 }
 
+.header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.back-button {
+    color: #00a884;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.85em;
+}
+
+.back-button:hover {
+    color: #25d366;
+}
+
 .chat-container header .leave-button {
     background: transparent;
     color: #ea4335;
-    padding: 8px 12px;
+    padding: 8px 0;
     text-decoration: none;
     font-weight: 500;
     font-size: 0.85em;

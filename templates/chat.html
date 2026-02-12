@@ -1,29 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>knox : Lobby</title>
+    <title>Knox Chat : {{ room }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
     <div class="chat-container">
         <header>
-            <h1>Knox Chat</h1>
-            <p>You are : <span id="nickname-display">{{nickname}}</span> in room: <span id="room-display">{{room}}</span></p>
-            <a href="{{ url_for('index')}}" class="leave-button">Leave chat</a>
+            <div>
+                <h1>{{ room }}</h1>
+                <p>Logged in as: <span id="nickname-display">{{ nickname }}</span></p>
+            </div>
+            <div class="header-actions">
+                <a href="{{ url_for('join_room_page') }}" class="back-button">Rooms</a>
+                <a href="{{ url_for('logout') }}" class="leave-button">Logout</a>
+            </div>
         </header>
 
         <div class="chat-messages" id="chat-messages">
-            </div>
-        
+            <div class="chat-message info"><em>Loading messages...</em></div>
+        </div>
+
         <form id="message-form" class="message-input-form">
-            <input type="text" id="message-input" placeholder="Share your thoughts...." autocomplete="off" autofocus>
-            <button type="submit">Send Message</button>
+            <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" autofocus>
+            <button type="submit">Send</button>
         </form>
     </div>
 
+    <input type="hidden" id="room-display" value="{{ room }}">
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
-    <script src="{{ url_for('static',filename='scripts.js') }}"></script>
+    <script src="{{ url_for('static', filename='scripts.js') }}"></script>
 </body>
+
 </html>

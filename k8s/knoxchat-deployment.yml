@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: knoxchat-deployment
+  namespace: knoxchat
+  labels:
+    app: knoxchat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: knoxchat
+  template:
+    metadata:
+      labels:
+        app: knoxchat
+    spec:
+      containers:
+      - name: knoxchat
+        image: rupeshs11/knox-chat:latest
+        ports:
+        - containerPort: 5000
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "250m"
+            memory: "256Mi"
+        env:
+        - name: MONGO_URI
+          valueFrom:
+            configMapKeyRef:
+              name: knoxchat-config
+              key: MONGO_URI
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: knoxchat-secrets
+              key: SECRET_KEY
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: knoxchat-config
+              key: DB_NAME
