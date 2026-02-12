@@ -11,18 +11,6 @@ A production-ready real-time chat app built with **Flask**, **Socket.IO**, and *
 
 ---
 
-## 📸 Screenshots
-
-|           Login Page           |           Chat Room           |
-| :----------------------------: | :---------------------------: |
-| ![Login](screenshots/home.png) | ![Chat](screenshots/chat.png) |
-
-|                 Namespace & Nodes                 |              Node Monitoring              |
-| :-----------------------------------------------: | :---------------------------------------: |
-| ![Namespace](<grafana-stats/namespace(node).png>) | ![Node View](grafana-stats/node-view.png) |
-
----
-
 ## ✨ Features
 
 - 💬 **Real-time messaging** — Instant message delivery via WebSockets
@@ -32,6 +20,7 @@ A production-ready real-time chat app built with **Flask**, **Socket.IO**, and *
 - 🌙 **WhatsApp-style dark theme** — Clean, modern UI
 - 🐳 **Dockerized** — One-command deployment with Docker Compose
 - ☸️ **Kubernetes ready** — Full K8s manifests with Ingress, PV/PVC, ConfigMaps, Secrets
+- 📊 **Monitoring** — Grafana dashboard for cluster observability
 - 🚀 **CI/CD** — Automated deployment via GitHub Actions
 
 ---
@@ -46,89 +35,223 @@ A production-ready real-time chat app built with **Flask**, **Socket.IO**, and *
 | **Frontend**         | HTML, CSS, JavaScript         |
 | **Containerization** | Docker, Docker Compose        |
 | **Orchestration**    | Kubernetes (Minikube)         |
+| **Monitoring**       | Grafana                       |
 | **CI/CD**            | GitHub Actions                |
-| **Cloud**            | AWS EC2                       |
 
 ---
 
 ## 🏗️ Architecture
 
 ```
-┌──────────┐     ┌──────────────┐     ┌──────────┐
-│  Browser │────▶│  Flask App   │────▶│  MongoDB │
-│  Client  │◀────│  + SocketIO  │◀────│  (Data)  │
-└──────────┘     └──────────────┘     └──────────┘
-      ▲                 ▲                    ▲
-      │           ┌─────┴─────┐              │
-      │           │  Docker   │         PV / PVC
-      └───────────│  / K8s    │──────────────┘
-                  └───────────┘
+                     ☸️  Kubernetes Cluster (Minikube)
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │
+│   🌐 Ingress (nginx)                                       │
+│   ┌───────────────────────────────────────────────────┐     │
+│   │  knoxchat.com  ──▶  knoxchat-service:5000         │     │
+│   └───────────────────────────────────────────────────┘     │
+│                        │                                    │
+│                        ▼                                    │
+│   🐍 Flask App                   🍃 MongoDB                │
+│   ┌───────────────────┐         ┌───────────────────┐      │
+│   │ 🔐 Auth           │         │ 📦 mongo:latest   │      │
+│   │ 💬 Socket.IO      │────────▶│ 🔌 Port: 27017   │      │
+│   │ � WebSocket      │◀────────│ 💾 PV / PVC      │      │
+│   │ 🔄 Replicas: 2    │         │    (5Gi Storage)  │      │
+│   └───────────────────┘         └───────────────────┘      │
+│            │                             │                  │
+│     🗺️ ConfigMap                   🔒 Secrets              │
+│     (MONGO_URI, DB_NAME)         (SECRET_KEY)              │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+                  │                         │
+          🐳 Docker Image           🚀 GitHub Actions
+        (rupeshs11/knox-chat)         (CI/CD Pipeline)
 ```
 
 ---
 
-## 🚀 Quick Start
+## � App Screenshots
 
-### Option 1: Local Development
+|           Login Page           |           Chat Room           |
+| :----------------------------: | :---------------------------: |
+| ![Login](screenshots/home.png) | ![Chat](screenshots/chat.png) |
+
+---
+
+## 🚀 Deployment Guide
+
+### Step 1: Clone the Repository
 
 ```bash
-# Clone
 git clone https://github.com/Rupeshs11/RealTime-ChatApp-.git
 cd RealTime-ChatApp-
-
-# Setup
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-
-# Create .env file
-echo "MONGO_URI=mongodb://localhost:27017/knox_chat" > .env
-echo "SECRET_KEY=your-secret-key" >> .env
-
-# Run
-python app.py
 ```
-
-Open `http://localhost:5000`
 
 ---
 
-### Option 2: Docker Compose
+### Step 2: Build & Push Docker Image
 
 ```bash
-docker-compose up -d
+# Build the image
+docker build -t rupeshs11/knox-chat:latest .
+
+# Login to Docker Hub
+docker login
+
+# Push to Docker Hub
+docker push rupeshs11/knox-chat:latest
 ```
-
-This starts both **MongoDB** and **Knox Chat** containers.
-
-Open `http://localhost:5000`
 
 ---
 
-### Option 3: Kubernetes (Minikube)
+### Step 3: Start Minikube Cluster
 
 ```bash
 # Start minikube
 minikube start --driver=docker
 
-# Enable ingress
+# Enable required addons
 minikube addons enable ingress
-
-# Apply all manifests
-kubectl apply -f k8s/namespace.yml
-kubectl apply -f k8s/
-
-# Start tunnel (in separate terminal)
-minikube tunnel
+minikube addons enable storage-provisioner
 ```
 
-Add to hosts file (`C:\Windows\System32\drivers\etc\hosts`):
+---
+
+### Step 4: Create Namespace
+
+```bash
+kubectl apply -f k8s/namespace.yml
+
+# Verify
+kubectl get namespaces
+```
+
+---
+
+### Step 5: Apply ConfigMap & Secrets
+
+```bash
+kubectl apply -f k8s/configmap.yml
+kubectl apply -f k8s/secrets.yml
+
+# Verify
+kubectl get configmap -n knoxchat
+kubectl get secrets -n knoxchat
+```
+
+> 💡 **Generate a secret key:**
+>
+> ```bash
+> python -c "import secrets; print(secrets.token_hex(32))"
+> ```
+
+---
+
+### Step 6: Deploy MongoDB with Persistent Storage
+
+```bash
+kubectl apply -f k8s/mongo-pv.yml
+kubectl apply -f k8s/mongo-pvc.yml
+kubectl apply -f k8s/mongo-deployment.yml
+kubectl apply -f k8s/mongo-service.yml
+
+# Verify MongoDB is running
+kubectl get pods -n knoxchat
+kubectl get svc -n knoxchat
+```
+
+---
+
+### Step 7: Deploy Knox Chat Application
+
+```bash
+kubectl apply -f k8s/knoxchat-deployment.yml
+kubectl apply -f k8s/knoxchat-service.yml
+
+# Verify pods are running
+kubectl get pods -n knoxchat
+
+# Check logs
+kubectl logs -l app=knoxchat -n knoxchat --tail=20
+```
+
+---
+
+### Step 8: Apply Ingress
+
+```bash
+kubectl apply -f k8s/ingress.yml
+
+# Verify ingress has an ADDRESS
+kubectl get ingress -n knoxchat
+```
+
+---
+
+### Step 9: Update Hosts File
+
+Add this entry to your hosts file:
+
+**Windows:** `C:\Windows\System32\drivers\etc\hosts`
+**Linux/Mac:** `/etc/hosts`
 
 ```
 127.0.0.1 knoxchat.com
 ```
 
-Open `http://knoxchat.com`
+---
+
+### Step 10: Start Minikube Tunnel
+
+```bash
+# Run in a separate terminal
+minikube tunnel
+```
+
+Now open **http://knoxchat.com** in your browser 🎉
+
+---
+
+### Step 11: Verify Database Connection
+
+```bash
+# Exec into MongoDB pod
+kubectl exec -it $(kubectl get pod -n knoxchat -l app=mongo -o name) -n knoxchat -- mongosh
+
+# Inside mongosh
+show dbs
+use knox_chat
+db.users.find()
+db.messages.find()
+```
+
+---
+
+### Step 12: Test Self-Healing
+
+```bash
+# Scale to 2 replicas
+kubectl scale deployment knoxchat-deployment --replicas=2 -n knoxchat
+
+# Watch pods
+kubectl get pods -n knoxchat --watch
+
+# Delete a pod to test recovery
+kubectl delete pod <pod-name> -n knoxchat
+
+# K8s auto-creates a new pod to maintain 2 replicas ✅
+```
+
+---
+
+## 📊 Monitoring & Observability
+
+Grafana dashboards for cluster monitoring:
+
+|                 Namespace & Nodes                 |              Node Monitoring              |
+| :-----------------------------------------------: | :---------------------------------------: |
+| ![Namespace](<grafana-stats/namespace(node).png>) | ![Node View](grafana-stats/node-view.png) |
 
 ---
 
@@ -140,7 +263,7 @@ RealTime-ChatApp/
 ├── config.py                 # Environment config loader
 ├── requirements.txt          # Python dependencies
 ├── Dockerfile                # Container image definition
-├── docker-compose.yml        # Multi-container setup
+├── docker-compose.yml        # Multi-container setup (local)
 ├── start.sh                  # App startup script
 ├── .env.example              # Environment variables template
 │
@@ -178,18 +301,18 @@ RealTime-ChatApp/
 
 ---
 
-## ☸️ Kubernetes Details
+## ☸️ Kubernetes Resources
 
 | Resource   | Name                  | Purpose                            |
 | ---------- | --------------------- | ---------------------------------- |
 | Namespace  | `knoxchat`            | Isolates all resources             |
 | ConfigMap  | `knoxchat-config`     | MONGO_URI, DB_NAME                 |
-| Secret     | `knoxchat-secrets`    | SECRET_KEY (base64)                |
-| PV + PVC   | `mongodb-pv/pvc`      | Persistent MongoDB storage         |
+| Secret     | `knoxchat-secrets`    | SECRET_KEY (base64 encoded)        |
+| PV + PVC   | `mongodb-pv/pvc`      | 5Gi persistent MongoDB storage     |
 | Deployment | `mongo-deployment`    | MongoDB pod (1 replica)            |
-| Deployment | `knoxchat-deployment` | App pods (2 replicas)              |
+| Deployment | `knoxchat-deployment` | App pods (2 replicas, 256Mi mem)   |
 | Service    | `mongo-service`       | Internal MongoDB access            |
-| Service    | `knoxchat-service`    | Internal app access                |
+| Service    | `knoxchat-service`    | Internal app access (port 5000)    |
 | Ingress    | `knoxchat-ingress`    | External access via `knoxchat.com` |
 
 ---
@@ -209,7 +332,7 @@ RealTime-ChatApp/
 1. Open the app → **Sign up** with a username and password
 2. **Login** with your credentials
 3. Enter a **room name** (share it with friends!)
-4. Start chatting! Messages persist across refreshes 🎉
+4. Start chatting — messages persist across refreshes 🎉
 
 ---
 
