@@ -17,6 +17,10 @@ A production-ready real-time chat app built with **Flask**, **Socket.IO**, and *
 | :----------------------------: | :---------------------------: |
 | ![Login](screenshots/home.png) | ![Chat](screenshots/chat.png) |
 
+|                 Namespace & Nodes                 |              Node Monitoring              |
+| :-----------------------------------------------: | :---------------------------------------: |
+| ![Namespace](<grafana-stats/namespace(node).png>) | ![Node View](grafana-stats/node-view.png) |
+
 ---
 
 ## ✨ Features
@@ -161,6 +165,8 @@ RealTime-ChatApp/
 │   ├── knoxchat-deployment.yml
 │   ├── knoxchat-service.yml
 │   └── ingress.yml
+│
+├── grafana-stats/            # Monitoring screenshots
 │
 ├── .github/workflows/
 │   └── deploy.yml            # CI/CD pipeline
