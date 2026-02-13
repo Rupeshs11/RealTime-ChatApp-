@@ -5,7 +5,7 @@ on:
 
 jobs:
   setup:
-    name: 🛠️ Setup EC2 Instance
+    name:  Setup EC2 Instance
     runs-on: ubuntu-latest
 
     steps:
@@ -36,7 +36,7 @@ jobs:
             docker --version
             docker compose version
 
-            echo "✅ Docker installed!"
+            echo "Docker installed!"
 
       - name: Install Certbot & Get SSL Certificate
         uses: appleboy/ssh-action@v1.0.3
@@ -65,4 +65,4 @@ jobs:
           script: |
             mkdir -p ~/knoxchat/nginx
             echo "✅ Project directory created!"
-            echo "🚀 EC2 is ready for deployment!"
+            echo "EC2 is ready for deployment!"
