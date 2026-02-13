@@ -51,11 +51,11 @@ A production-ready real-time chat app built with **Flask**, **Socket.IO**, and *
 
 ### EKS Deployment
 
-![EKS Architecture](architecture/eks-arch.png)
+![EKS Architecture](architecture/eks-architecture.png)
 
 ### CI/CD Pipeline
 
-![CI/CD Architecture](architecture/CICD-arch.png)
+![CI/CD Architecture](architecture/cicd-architecture.png)
 
 ---
 
