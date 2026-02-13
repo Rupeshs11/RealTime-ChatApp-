@@ -5,7 +5,7 @@ on:
 
 jobs:
   setup:
-    name:  Setup EC2 Instance
+    name: Setup EC2 Instance
     runs-on: ubuntu-latest
 
     steps:
@@ -37,24 +37,6 @@ jobs:
             docker compose version
 
             echo "Docker installed!"
-
-      - name: Install Certbot & Get SSL Certificate
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
-          command_timeout: 5m
-          script: |
-            # Install Certbot
-            sudo yum install -y certbot
-
-            # Get SSL certificate (standalone mode)
-            sudo certbot certonly --standalone --non-interactive --agree-tos \
-              --email ${{ secrets.CERT_EMAIL }} \
-              -d knoxcloud.tech -d www.knoxcloud.tech
-
-            echo "✅ SSL certificate obtained!"
 
       - name: Create Project Directory
         uses: appleboy/ssh-action@v1.0.3
