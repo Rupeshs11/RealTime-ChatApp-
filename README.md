@@ -55,7 +55,7 @@ A production-ready real-time chat app built with **Flask**, **Socket.IO**, and *
 
 ### CI/CD Pipeline
 
-![CI/CD Architecture](architecture/cicd-architecture.png)
+![CI/CD Architecture](architecture/CICD-architecture.png)
 
 ---
 
