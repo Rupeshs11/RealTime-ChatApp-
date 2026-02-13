@@ -10,8 +10,6 @@ A production-ready real-time chat app built with **Flask**, **Socket.IO**, and *
 ![Nginx](https://img.shields.io/badge/Nginx-SSL_Proxy-009639?logo=nginx&logoColor=white)
 ![CI/CD](https://img.shields.io/badge/CI/CD-GitHub_Actions-purple?logo=githubactions&logoColor=white)
 
-🌐 **Live:** [https://knoxcloud.tech](https://knoxcloud.tech)
-
 ---
 
 ## ✨ Features
@@ -142,14 +140,14 @@ sudo usermod -aG docker ubuntu
 In your DNS provider, add an **A Record**:
 
 ```
-knoxcloud.tech  →  <EC2-Public-IP>
+<Domain>  →  <EC2-Public-IP>
 ```
 
 #### Step 4: Get SSL Certificate
 
 ```bash
 sudo apt-get install -y certbot
-sudo certbot certonly --standalone -d knoxcloud.tech -d www.knoxcloud.tech
+sudo certbot certonly --standalone -d <Domain> -d <SubDomain>
 ```
 
 #### Step 5: Copy Files & Deploy
@@ -182,10 +180,10 @@ docker compose -f docker-compose.prod.yml ps
 docker compose -f docker-compose.prod.yml logs knox-chat
 
 # Test SSL
-curl -I https://knoxcloud.tech
+curl -I https://<Domain>
 ```
 
-Open **https://knoxcloud.tech** 🎉
+Open **https://<Domain>** 🎉
 
 ---
 
