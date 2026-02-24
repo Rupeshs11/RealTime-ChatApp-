@@ -161,9 +161,9 @@ jobs:
           name: OWASP-Report
           path: reports/
 
-  # CI STAGE 3 — Build Docker Image, Trivy Scan & Push to DockerHub
-  build-scan-push:
-    name: Build, Scan & Push
+  # CI STAGE 3 — Build Docker Image
+  build:
+    name: Build Docker Image
     if: github.event_name == 'push'
     needs: [sonarcloud, owasp]
     runs-on: ubuntu-latest
@@ -172,13 +172,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Build Docker Image (local)
+      - name: Build Docker Image
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -188,6 +182,32 @@ jobs:
             ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
             ${{ env.DOCKER_IMAGE }}:latest
 
+      - name: Save Docker Image
+        run: docker save ${{ env.DOCKER_IMAGE }}:${{ github.sha }} ${{ env.DOCKER_IMAGE }}:latest -o knox-chat-image.tar
+
+      - name: Upload Image Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: knox-chat-image.tar
+          retention-days: 1
+
+  # CI STAGE 4 — Trivy Vulnerability Scan
+  trivy-scan:
+    name: Trivy Image Scan
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Image Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
+      - name: Load Docker Image
+        run: docker load -i knox-chat-image.tar
+
       - name: Trivy — Vulnerability Scan
         uses: aquasecurity/trivy-action@master
         with:
@@ -195,7 +215,7 @@ jobs:
           format: "sarif"
           output: "trivy-results.sarif"
           severity: "CRITICAL,HIGH"
-          exit-code: "0" # Set to '1' to fail pipeline on vulnerabilities
+          exit-code: "0"
 
       - name: Upload Trivy Results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
@@ -203,7 +223,29 @@ jobs:
         with:
           sarif_file: "trivy-results.sarif"
 
-      - name: Push Docker Image to DockerHub
+  # CI STAGE 5 — Push to DockerHub
+  push:
+    name: Push to DockerHub
+    if: github.event_name == 'push'
+    needs: trivy-scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Image Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
+      - name: Load Docker Image
+        run: docker load -i knox-chat-image.tar
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Push Docker Image
         run: |
           docker push ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
           docker push ${{ env.DOCKER_IMAGE }}:latest
@@ -212,7 +254,7 @@ jobs:
   update-manifest:
     name: Update K8s Manifest (GitOps)
     if: github.event_name == 'push'
-    needs: build-scan-push
+    needs: push
     runs-on: ubuntu-latest
 
     steps:
