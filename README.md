@@ -1,14 +1,17 @@
 # 💬 Knox Chat — Real-Time Chat Application
 
-A production-ready real-time chat app built with **Flask**, **Socket.IO**, and **MongoDB**, containerized with **Docker**, orchestrated on **Kubernetes (Minikube)**, and deployed to **AWS EC2** with **Nginx SSL** via **CI/CD**.
+A production-ready real-time chat app built with **Flask**, **Socket.IO**, and **MongoDB** — featuring a complete **DevSecOps CI/CD pipeline**, **GitOps** with ArgoCD, **Kubernetes** on AWS EKS, and **Infrastructure as Code** with Terraform.
 
 ![Python](https://img.shields.io/badge/Python-3.10-blue?logo=python&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-3.0-green?logo=flask&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-4.6-brightgreen?logo=mongodb&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?logo=docker&logoColor=white)
-![Kubernetes](https://img.shields.io/badge/Kubernetes-Orchestrated-326CE5?logo=kubernetes&logoColor=white)
-![Nginx](https://img.shields.io/badge/Nginx-SSL_Proxy-009639?logo=nginx&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-EKS-326CE5?logo=kubernetes&logoColor=white)
+![Terraform](https://img.shields.io/badge/Terraform-IaC-844FBA?logo=terraform&logoColor=white)
+![ArgoCD](https://img.shields.io/badge/ArgoCD-GitOps-EF7B4D?logo=argo&logoColor=white)
 ![CI/CD](https://img.shields.io/badge/CI/CD-GitHub_Actions-purple?logo=githubactions&logoColor=white)
+![SonarCloud](https://img.shields.io/badge/SonarCloud-SAST-F3702A?logo=sonarcloud&logoColor=white)
+![Nginx](https://img.shields.io/badge/Nginx-SSL_Proxy-009639?logo=nginx&logoColor=white)
 
 ---
 
@@ -22,38 +25,57 @@ A production-ready real-time chat app built with **Flask**, **Socket.IO**, and *
 - 🐳 **Dockerized** — One-command deployment with Docker Compose
 - ☸️ **Kubernetes ready** — Full K8s manifests with Ingress, PV/PVC, ConfigMaps, Secrets
 - 🔒 **SSL/HTTPS** — Nginx reverse proxy with Let's Encrypt
-- 📊 **Monitoring** — Grafana dashboard for cluster observability
-- 🚀 **CI/CD** — Two-stage pipeline (Build → Deploy)
+- �️ **DevSecOps** — Automated security scanning (SAST, SCA, Container Scanning)
+- 🔄 **GitOps** — ArgoCD auto-sync from Git to EKS
+- 🏗️ **Infrastructure as Code** — Terraform provisions AWS infrastructure
+- 📊 **Monitoring** — Prometheus & Grafana for cluster observability
+- 🚀 **CI/CD** — 7-stage DevSecOps pipeline with GitHub Actions
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Layer                | Technology                    |
-| -------------------- | ----------------------------- |
-| **Backend**          | Flask, Flask-SocketIO, Gevent |
-| **Database**         | MongoDB                       |
-| **Auth**             | Werkzeug (password hashing)   |
-| **Frontend**         | HTML, CSS, JavaScript         |
-| **Containerization** | Docker, Docker Compose        |
-| **Reverse Proxy**    | Nginx (SSL termination)       |
-| **Orchestration**    | Kubernetes (Minikube)         |
-| **Monitoring**       | Grafana                       |
-| **CI/CD**            | GitHub Actions (2 pipelines)  |
-| **Cloud**            | AWS EC2                       |
-| **Domain**           | knoxcloud.tech                |
+| Layer                  | Technology                             |
+| ---------------------- | -------------------------------------- |
+| **Backend**            | Flask, Flask-SocketIO, Gevent          |
+| **Database**           | MongoDB                                |
+| **Auth**               | Werkzeug (password hashing)            |
+| **Frontend**           | HTML, CSS, JavaScript                  |
+| **Containerization**   | Docker, Docker Compose                 |
+| **Reverse Proxy**      | Nginx (SSL termination)                |
+| **Orchestration**      | Kubernetes (Minikube / AWS EKS)        |
+| **IaC**                | Terraform (S3 backend, DynamoDB lock)  |
+| **CI/CD**              | GitHub Actions                         |
+| **SAST**               | SonarCloud                             |
+| **SCA**                | OWASP Dependency-Check                 |
+| **Container Scanning** | Trivy                                  |
+| **GitOps**             | ArgoCD (auto-sync, self-heal)          |
+| **Monitoring**         | Prometheus & Grafana                   |
+| **Cloud**              | AWS (EKS, VPC, EC2, EBS, S3, DynamoDB) |
 
 ---
 
 ## 🏗️ Architecture
 
-### EKS Deployment
+### DevSecOps & GitOps Pipeline
+
+![DevSecOps Architecture](architecture/DevSecops-arch.png)
+
+### CI/CD Pipeline Flow
+
+![CI/CD Pipeline](architecture/CICD-architecture.png)
+
+### GitHub Actions Workflow
+
+![GitHub Actions Flow](architecture/github-actions_flow.png)
+
+### EKS Cluster Architecture
 
 ![EKS Architecture](architecture/eks-architecture.png)
 
-### CI/CD Pipeline
+### ArgoCD GitOps Dashboard
 
-![CI/CD Architecture](architecture/CICD-architecture.png)
+![ArgoCD](architecture/ArgoCD.png)
 
 ---
 
@@ -65,19 +87,82 @@ A production-ready real-time chat app built with **Flask**, **Socket.IO**, and *
 
 ---
 
-## 🚀 CI/CD Pipeline
+## �️ DevSecOps CI/CD Pipeline
 
-Two separate GitHub Actions workflows:
-
-| Pipeline          | Trigger              | What it does                                       |
-| ----------------- | -------------------- | -------------------------------------------------- |
-| **Build & Push**  | Push to `main`       | Builds Docker image → Pushes to Docker Hub         |
-| **Deploy to EC2** | After build succeeds | Copies configs → Pulls image → Restarts containers |
+A single GitHub Actions workflow (`devsecops.yml`) with **7 connected stages** and a separate **Terraform** trigger:
 
 ```
-  git push ──▶ Pipeline 1: Build Image ──▶ Pipeline 2: Deploy to EC2
-                 📦 Docker Hub                 🖥️ docker compose up
+                        ┌─────────────┐
+                   ┌───→│ SonarCloud  │──┐
+  ┌──────┐         │    │   (SAST)    │  │    ┌───────┐    ┌─────────┐    ┌──────┐    ┌────────────────┐
+  │ Lint │─────────┤    └─────────────┘  ├───→│ Build │───→│ Trivy   │───→│ Push │───→│ Update K8s     │
+  └──────┘         │    ┌─────────────┐  │    │ Image │    │ Scan    │    │      │    │ Manifest       │
+                   └───→│ OWASP       │──┘    └───────┘    └─────────┘    └──────┘    └────────────────┘
+                        │   (SCA)     │                                                       │
+                        └─────────────┘                                                       ▼
+                                                                                    ArgoCD Auto-Sync
+  Manual Trigger ──→ Terraform (plan / apply / destroy)                             to EKS Cluster
 ```
+
+| Stage              | Tool                   | Purpose                                    |
+| ------------------ | ---------------------- | ------------------------------------------ |
+| **Lint**           | flake8                 | Python code quality checks                 |
+| **SAST**           | SonarCloud             | Source code vulnerability scanning         |
+| **SCA**            | OWASP Dependency-Check | Third-party library vulnerability scanning |
+| **Build**          | Docker                 | Multi-stage build with non-root user       |
+| **Container Scan** | Trivy                  | Docker image vulnerability scanning        |
+| **Push**           | DockerHub              | Image registry with SHA-tagged versions    |
+| **GitOps**         | ArgoCD                 | Auto-deploy from Git to EKS cluster        |
+| **IaC**            | Terraform              | Provision/destroy EKS infrastructure       |
+
+### EC2 Deploy Pipeline
+
+A separate pipeline (`deploy.yml`) for simple EC2 Docker deployments:
+
+```
+Manual Trigger ──→ Terraform (creates EC2 with Docker)
+Push to main   ──→ Build & Push ──→ Deploy to EC2 (SSH)
+```
+
+---
+
+## 🏗️ Infrastructure as Code (Terraform)
+
+Two separate Terraform configurations:
+
+| Config  | Directory              | Infrastructure                                               |
+| ------- | ---------------------- | ------------------------------------------------------------ |
+| **EKS** | `terraform-devSecOps/` | VPC, Subnets, NAT Gateway, EKS Cluster, Node Groups, EBS CSI |
+| **EC2** | `terraform/`           | EC2 Instance, Security Group, Docker (user_data)             |
+
+Both use S3 backend for remote state and DynamoDB for state locking.
+
+---
+
+## 🔄 GitOps with ArgoCD
+
+ArgoCD continuously monitors the `k8s/` directory and auto-syncs changes to EKS:
+
+- **Auto-Sync** — Detects Git changes and deploys automatically
+- **Self-Heal** — Reverts any manual cluster changes back to Git
+- **Pruning** — Deletes resources removed from Git
+- **Rollback** — One-click rollback to any previous version
+
+The CI pipeline updates `k8s/knoxchat-deployment.yml` with the new image tag on every push. ArgoCD detects this change and deploys the new version.
+
+---
+
+## 📊 Monitoring & Observability
+
+Prometheus & Grafana deployed via Helm for full cluster monitoring:
+
+- **Prometheus** — Metrics collection from all pods and nodes
+- **Grafana** — Pre-configured dashboards for Kubernetes monitoring
+- **Node Exporter** — Host-level metrics (CPU, memory, disk)
+
+|                 Namespace & Nodes                 |              Node Monitoring              |
+| :-----------------------------------------------: | :---------------------------------------: |
+| ![Namespace](<grafana-stats/namespace(node).png>) | ![Node View](grafana-stats/node-view.png) |
 
 ---
 
@@ -153,37 +238,28 @@ sudo certbot certonly --standalone -d <Domain> -d <SubDomain>
 #### Step 5: Copy Files & Deploy
 
 ```bash
-# Copy files to EC2
 scp -i "your-key.pem" docker-compose.prod.yml ubuntu@<EC2-IP>:~/knoxchat/
 scp -i "your-key.pem" -r nginx/ ubuntu@<EC2-IP>:~/knoxchat/
 
-# SSH and deploy
 ssh -i "your-key.pem" ubuntu@<EC2-IP>
 cd ~/knoxchat
 
-# Create .env
 echo "MONGO_URI=mongodb://mongodb:27017/knox_chat" > .env
 echo "SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_hex(32))')" >> .env
 echo "DB_NAME=knox_chat" >> .env
 
-# Start everything
 docker compose -f docker-compose.prod.yml up -d
 ```
 
 #### Step 6: Verify
 
 ```bash
-# Check all containers
 docker compose -f docker-compose.prod.yml ps
-
-# Check logs
 docker compose -f docker-compose.prod.yml logs knox-chat
-
-# Test SSL
 curl -I https://<Domain>
 ```
 
-Open **https://<Domain>** 🎉
+Open **https://<Domain>**
 
 ---
 
@@ -196,58 +272,22 @@ minikube start --driver=docker
 minikube addons enable ingress
 ```
 
-#### Step 2: Create Namespace
+#### Step 2: Deploy All Resources
 
 ```bash
 kubectl apply -f k8s/namespace.yml
-kubectl get namespaces
-```
-
-#### Step 3: Apply ConfigMap & Secrets
-
-```bash
 kubectl apply -f k8s/configmap.yml
 kubectl apply -f k8s/secrets.yml
-
-kubectl get configmap -n knoxchat
-kubectl get secrets -n knoxchat
-```
-
-> 💡 **Generate base64 secret:**
->
-> ```bash
-> python -c "import secrets; print(secrets.token_hex(32))" | base64
-> ```
-
-#### Step 4: Deploy MongoDB
-
-```bash
 kubectl apply -f k8s/mongo-pv.yml
 kubectl apply -f k8s/mongo-pvc.yml
 kubectl apply -f k8s/mongo-deployment.yml
 kubectl apply -f k8s/mongo-service.yml
-
-kubectl get pods -n knoxchat
-```
-
-#### Step 5: Deploy Knox Chat
-
-```bash
 kubectl apply -f k8s/knoxchat-deployment.yml
 kubectl apply -f k8s/knoxchat-service.yml
-
-kubectl get pods -n knoxchat
-kubectl logs -l app=knoxchat -n knoxchat --tail=20
-```
-
-#### Step 6: Apply Ingress
-
-```bash
 kubectl apply -f k8s/ingress.yml
-kubectl get ingress -n knoxchat
 ```
 
-#### Step 7: Update Hosts & Tunnel
+#### Step 3: Access the App
 
 Add to hosts file (`C:\Windows\System32\drivers\etc\hosts`):
 
@@ -256,44 +296,25 @@ Add to hosts file (`C:\Windows\System32\drivers\etc\hosts`):
 ```
 
 ```bash
-# Run in separate terminal
 minikube tunnel
 ```
 
-Open **http://knoxchat.com** 🎉
-
-#### Step 8: Verify Database
-
-```bash
-kubectl exec -it $(kubectl get pod -n knoxchat -l app=mongo -o name) -n knoxchat -- mongosh
-
-# Inside mongosh
-show dbs
-use knox_chat
-db.users.find()
-db.messages.find()
-```
-
-#### Step 9: Test Self-Healing
-
-```bash
-kubectl scale deployment knoxchat-deployment --replicas=2 -n knoxchat
-kubectl get pods -n knoxchat --watch
-
-# Delete a pod
-kubectl delete pod <pod-name> -n knoxchat
-# K8s auto-creates a new pod ✅
-```
+Open **http://knoxchat.com**
 
 ---
 
-## 📊 Monitoring & Observability
+### Option 5: AWS EKS (Full DevSecOps)
 
-Grafana dashboards for cluster monitoring:
+See [DEVSECOPS-GUIDE.md](docs/DEVSECOPS-GUIDE.md) for the complete step-by-step guide.
 
-|                 Namespace & Nodes                 |              Node Monitoring              |
-| :-----------------------------------------------: | :---------------------------------------: |
-| ![Namespace](<grafana-stats/namespace(node).png>) | ![Node View](grafana-stats/node-view.png) |
+**Quick steps:**
+
+1. Setup GitHub Secrets (Docker, AWS, SonarCloud)
+2. Terraform Apply (creates EKS cluster)
+3. Install ArgoCD on EKS
+4. Apply ArgoCD Application manifest
+5. Install Nginx Ingress Controller
+6. Push code → Pipeline runs → ArgoCD deploys
 
 ---
 
@@ -304,62 +325,70 @@ RealTime-ChatApp/
 ├── app.py                        # Flask app with auth + Socket.IO
 ├── config.py                     # Environment config loader
 ├── requirements.txt              # Python dependencies
-├── Dockerfile                    # Container image definition
-├── docker-compose.yml            # Local multi-container setup
+├── Dockerfile                    # Multi-stage, non-root, health check
+├── docker-compose.yml            # Local dev setup
 ├── docker-compose.prod.yml       # Production setup (Nginx + SSL)
+├── sonar-project.properties      # SonarCloud configuration
 ├── .env.example                  # Environment variables template
 │
 ├── nginx/                        # Nginx reverse proxy config
-│   └── nginx.conf                # SSL + WebSocket proxy
-│
-├── templates/
-│   ├── login.html                # Login page
-│   ├── signup.html               # Signup page
-│   ├── index.html                # Room selection page
-│   └── chat.html                 # Chat room page
-│
-├── static/
-│   ├── style.css                 # WhatsApp dark theme
-│   └── scripts.js                # Client-side Socket.IO logic
+├── templates/                    # HTML templates (login, signup, chat)
+├── static/                       # CSS + JavaScript
 │
 ├── k8s/                          # Kubernetes manifests
 │   ├── namespace.yml
 │   ├── configmap.yml
 │   ├── secrets.yml
-│   ├── mongo-pv.yml
-│   ├── mongo-pvc.yml
-│   ├── mongo-deployment.yml
-│   ├── mongo-service.yml
-│   ├── knoxchat-deployment.yml
-│   ├── knoxchat-service.yml
-│   └── ingress.yml
+│   ├── mongo-storageclass.yml    # EBS StorageClass for EKS
+│   ├── mongo-pv.yml / mongo-pvc.yml
+│   ├── mongo-deployment.yml / mongo-service.yml
+│   ├── knoxchat-deployment.yml / knoxchat-service.yml
+│   ├── ingress.yml
+│   └── argocd/
+│       └── application.yml       # ArgoCD app definition
 │
-├── .github/workflows/            # CI/CD pipelines
-│   ├── docker-build.yml          # Pipeline 1: Build & Push image
-│   └── deploy-ec2.yml            # Pipeline 2: Deploy to EC2
+├── terraform/                    # EC2 Infrastructure (Terraform)
+│   ├── provider.tf / variables.tf
+│   ├── main.tf / outputs.tf
 │
-├── grafana-stats/                # Monitoring screenshots
+├── terraform-devSecOps/          # EKS Infrastructure (Terraform)
+│   ├── provider.tf / variables.tf
+│   ├── vpc.tf / eks.tf / outputs.tf
 │
-└── screenshots/
-    ├── home.png
-    └── chat.png
+├── monitoring/                   # Prometheus & Grafana
+│   ├── prometheus-values.yml
+│   └── setup.md
+│
+├── docs/                         # Guides & Documentation
+│   ├── DEVSECOPS-KNOWLEDGE.md    # Concepts & Interview prep
+│   ├── EC2-DEPLOY-GUIDE.md       # EC2 pipeline quick setup
+│   └── argocd-setup.md           # ArgoCD installation guide
+│
+├── .github/workflows/            # CI/CD Pipelines
+│   ├── devsecops.yml             # DevSecOps + EKS pipeline
+│   └── deploy.yml                # EC2 deploy pipeline
+│
+├── architecture/                 # Architecture diagrams
+├── grafana-stats/                # Grafana monitoring screenshots
+└── screenshots/                  # App screenshots
 ```
 
 ---
 
 ## ☸️ Kubernetes Resources
 
-| Resource   | Name                  | Purpose                            |
-| ---------- | --------------------- | ---------------------------------- |
-| Namespace  | `knoxchat`            | Isolates all resources             |
-| ConfigMap  | `knoxchat-config`     | MONGO_URI, DB_NAME                 |
-| Secret     | `knoxchat-secrets`    | SECRET_KEY (base64 encoded)        |
-| PV + PVC   | `mongodb-pv/pvc`      | 5Gi persistent MongoDB storage     |
-| Deployment | `mongo-deployment`    | MongoDB pod (1 replica)            |
-| Deployment | `knoxchat-deployment` | App pods (2 replicas, 256Mi mem)   |
-| Service    | `mongo-service`       | Internal MongoDB access            |
-| Service    | `knoxchat-service`    | Internal app access (port 5000)    |
-| Ingress    | `knoxchat-ingress`    | External access via `knoxchat.com` |
+| Resource     | Name                  | Purpose                            |
+| ------------ | --------------------- | ---------------------------------- |
+| Namespace    | `knoxchat`            | Isolates all resources             |
+| ConfigMap    | `knoxchat-config`     | MONGO_URI, DB_NAME                 |
+| Secret       | `knoxchat-secrets`    | SECRET_KEY (base64 encoded)        |
+| StorageClass | `ebs-sc`              | EBS gp3 dynamic provisioning (EKS) |
+| PV + PVC     | `mongodb-pv/pvc`      | Persistent MongoDB storage         |
+| Deployment   | `mongo-deployment`    | MongoDB pod (1 replica)            |
+| Deployment   | `knoxchat-deployment` | App pod with health probes         |
+| Service      | `mongo-service`       | Internal MongoDB access            |
+| Service      | `knoxchat-service`    | Internal app access (port 5000)    |
+| Ingress      | `knoxchat-ingress`    | External access via Nginx          |
 
 ---
 
@@ -371,15 +400,19 @@ RealTime-ChatApp/
 | `SECRET_KEY` | Flask session secret key             |
 | `DB_NAME`    | Database name (default: `knox_chat`) |
 
-#### GitHub Secrets Required
+### GitHub Secrets Required
 
-| Secret            | Description                  |
-| ----------------- | ---------------------------- |
-| `DOCKER_USERNAME` | Docker Hub username          |
-| `DOCKER_PASSWORD` | Docker Hub password/token    |
-| `EC2_HOST`        | EC2 public IP address        |
-| `EC2_SSH_KEY`     | EC2 private key (PEM format) |
-| `SECRET_KEY`      | Flask session secret         |
+| Secret                  | Pipeline   | Purpose                  |
+| ----------------------- | ---------- | ------------------------ |
+| `DOCKER_USERNAME`       | Both       | Docker Hub login         |
+| `DOCKER_PASSWORD`       | Both       | Docker Hub access token  |
+| `SONAR_TOKEN`           | DevSecOps  | SonarCloud SAST analysis |
+| `AWS_ACCESS_KEY_ID`     | Both       | Terraform AWS access     |
+| `AWS_SECRET_ACCESS_KEY` | Both       | Terraform AWS access     |
+| `AWS_REGION`            | Both       | AWS region               |
+| `EC2_HOST`              | EC2 Deploy | EC2 public IP            |
+| `EC2_SSH_KEY`           | EC2 Deploy | EC2 private key (PEM)    |
+| `SECRET_KEY`            | EC2 Deploy | Flask session secret     |
 
 ---
 
@@ -388,6 +421,6 @@ RealTime-ChatApp/
 1. Open the app → **Sign up** with a username and password
 2. **Login** with your credentials
 3. Enter a **room name** (share it with friends!)
-4. Start chatting — messages persist across refreshes 
+4. Start chatting — messages persist across refreshes
 
 ---
