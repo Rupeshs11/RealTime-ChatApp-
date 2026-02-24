@@ -14,13 +14,12 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-  - host: knoxchat.com
-    http:
-      paths:
-      - pathType: Prefix
-        path: "/"
-        backend:
-          service:
-            name: knoxchat-service
-            port: 
-              number: 5000
+    - http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: knoxchat-service
+                port:
+                  number: 5000
