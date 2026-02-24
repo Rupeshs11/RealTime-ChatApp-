@@ -1,51 +1,23 @@
-# ──────────────────────────────────────────────────────────────
-# Variables — All configurable inputs for EKS infrastructure
-# ──────────────────────────────────────────────────────────────
-
 variable "aws_region" {
-  description = "AWS region to deploy resources"
+  description = "AWS region"
   type        = string
-  default     = "us-east-1"
+  default     = "ap-south-1"
 }
 
-variable "cluster_name" {
-  description = "Name of the EKS cluster"
+variable "instance_type" {
+  description = "EC2 instance type"
   type        = string
-  default     = "knoxchat-cluster"
+  default     = "t2.micro"
 }
 
-variable "cluster_version" {
-  description = "Kubernetes version for EKS"
+variable "ami_id" {
+  description = "AMI ID for Amazon Linux 2023"
   type        = string
-  default     = "1.31"
+  default     = "ami-0c02fb55956c7d316"
 }
 
-variable "vpc_cidr" {
-  description = "CIDR block for the VPC"
+variable "key_name" {
+  description = "SSH key pair name"
   type        = string
-  default     = "10.0.0.0/16"
-}
-
-variable "node_instance_type" {
-  description = "EC2 instance type for EKS worker nodes"
-  type        = string
-  default     = "t3.small"
-}
-
-variable "node_desired_size" {
-  description = "Desired number of worker nodes"
-  type        = number
-  default     = 2
-}
-
-variable "node_min_size" {
-  description = "Minimum number of worker nodes"
-  type        = number
-  default     = 1
-}
-
-variable "node_max_size" {
-  description = "Maximum number of worker nodes"
-  type        = number
-  default     = 3
+  default     = "knoxchat-key"
 }
