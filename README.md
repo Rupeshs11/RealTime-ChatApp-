@@ -33,6 +33,22 @@ A production-ready real-time chat app built with **Flask**, **Socket.IO**, and *
 
 ---
 
+## 🏗️ Architecture
+
+### DevSecOps & GitOps Architecture
+
+![DevSecOps Architecture](architecture/DevSecops-arch.png)
+
+### GitHub Actions Workflow
+
+![GitHub Actions Flow](architecture/github-actions_flow.png)
+
+### ArgoCD GitOps Dashboard
+
+![ArgoCD](architecture/ArgoCD.png)
+
+---
+
 ## 🛠️ Tech Stack
 
 | Layer                  | Technology                             |
@@ -52,22 +68,6 @@ A production-ready real-time chat app built with **Flask**, **Socket.IO**, and *
 | **GitOps**             | ArgoCD (auto-sync, self-heal)          |
 | **Monitoring**         | Prometheus & Grafana                   |
 | **Cloud**              | AWS (EKS, VPC, EC2, EBS, S3, DynamoDB) |
-
----
-
-## 🏗️ Architecture
-
-### DevSecOps & GitOps Architecture
-
-![DevSecOps Architecture](architecture/DevSecops-arch.png)
-
-### GitHub Actions Workflow
-
-![GitHub Actions Flow](architecture/github-actions_flow.png)
-
-### ArgoCD GitOps Dashboard
-
-![ArgoCD](architecture/ArgoCD.png)
 
 ---
 
