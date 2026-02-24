@@ -1,74 +1,159 @@
-# name: Build & Deploy
 
-# on:
-#   push:
-#     branches:
-#       - main
+name: EC2 Deploy Pipeline
 
-# jobs:
-#   build:
-#     name: Build & Push Docker Image
-#     runs-on: ubuntu-latest
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "terraform-devSecOps/**"
+      - "k8s/**"
+      - "monitoring/**"
+      - "screenshots/**"
+      - "grafana-stats/**"
+      - "architecture/**"
 
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v4
+  workflow_dispatch:
+    inputs:
+      terraform_action:
+        description: "Terraform Action (EC2)"
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
 
-#       - name: Login to Docker Hub
-#         uses: docker/login-action@v3
-#         with:
-#           username: ${{ secrets.DOCKER_USERNAME }}
-#           password: ${{ secrets.DOCKER_PASSWORD }}
+jobs:
+  # TERRAFORM — EC2 Infrastructure (Manual Trigger Only)
+  terraform:
+    name: "Terraform EC2 — ${{ github.event.inputs.terraform_action }}"
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
 
-#       - name: Build and Push
-#         uses: docker/build-push-action@v5
-#         with:
-#           context: .
-#           push: true
-#           tags: |
-#             ${{ secrets.DOCKER_USERNAME }}/knox-chat:latest
-#             ${{ secrets.DOCKER_USERNAME }}/knox-chat:${{ github.sha }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-#   deploy:
-#     name: Deploy to EC2
-#     runs-on: ubuntu-latest
-#     needs: build
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.0
 
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-#       - name: Copy deployment files to EC2
-#         uses: appleboy/scp-action@v0.1.7
-#         with:
-#           host: ${{ secrets.EC2_HOST }}
-#           username: ec2-user
-#           key: ${{ secrets.EC2_SSH_KEY }}
-#           source: "docker-compose.prod.yml,nginx/nginx.conf,nginx/knoxcloud.tech"
-#           target: ~/knoxchat
-#           overwrite: true
+      - name: Terraform Init
+        run: terraform init
 
-#       - name: Deploy on EC2
-#         uses: appleboy/ssh-action@v1.0.3
-#         with:
-#           host: ${{ secrets.EC2_HOST }}
-#           username: ec2-user
-#           key: ${{ secrets.EC2_SSH_KEY }}
-#           command_timeout: 5m
-#           script: |
-#             cd ~/knoxchat
+      - name: Terraform Plan
+        if: github.event.inputs.terraform_action != 'destroy'
+        run: terraform plan -no-color
 
-#             # Create .env
-#             echo "MONGO_URI=mongodb://mongodb:27017/knox_chat" > .env
-#             echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
-#             echo "DB_NAME=knox_chat" >> .env
+      - name: Terraform Apply
+        if: github.event.inputs.terraform_action == 'apply'
+        run: terraform apply -auto-approve -no-color
 
-#             # Pull latest image and restart
-#             docker compose -f docker-compose.prod.yml pull
-#             docker compose -f docker-compose.prod.yml up -d --force-recreate
+      - name: Terraform Destroy
+        if: github.event.inputs.terraform_action == 'destroy'
+        run: terraform destroy -auto-approve -no-color
 
-#             # Verify
-#             sleep 5
-#             docker compose -f docker-compose.prod.yml ps
+      - name: Show EC2 Info
+        if: github.event.inputs.terraform_action == 'apply'
+        run: |
+          echo "================================================"
+          echo "EC2 Instance Created!"
+          echo "================================================"
+          echo ""
+          echo "Public IP:"
+          terraform output -raw ec2_public_ip
+          echo ""
+          echo ""
+          echo "SSH Command:"
+          terraform output -raw ssh_command
+          echo ""
+          echo ""
+          echo "App URL:"
+          terraform output -raw app_url
+          echo ""
+          echo "================================================"
+          echo "Add this IP as EC2_HOST in GitHub Secrets!"
+          echo "================================================"
 
-#             echo "✅ Deployed successfully!"
+  # BUILD — Build & Push Docker Image
+  build:
+    name: Build & Push Docker Image
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and Push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/knox-chat:latest
+            ${{ secrets.DOCKER_USERNAME }}/knox-chat:${{ github.sha }}
+
+  # DEPLOY — Deploy to EC2 via SSH
+  deploy:
+    name: Deploy to EC2
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Copy Files to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "docker-compose.prod.yml,nginx/nginx.conf,nginx/knoxcloud.tech"
+          target: ~/knoxchat
+          overwrite: true
+
+      - name: Deploy on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 5m
+          script: |
+            cd ~/knoxchat
+
+            # Create .env
+            echo "MONGO_URI=mongodb://mongodb:27017/knox_chat" > .env
+            echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
+            echo "DB_NAME=knox_chat" >> .env
+
+            # Pull latest image and restart
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d --force-recreate
+
+            # Verify
+            sleep 5
+            docker compose -f docker-compose.prod.yml ps
+
+            echo "Deploy successful!"
