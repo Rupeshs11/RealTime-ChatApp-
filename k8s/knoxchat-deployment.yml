@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: knoxchat
-          image: rupeshs11/knox-chat:ee24c15018529bab03b585995e39178f25d8295a
+          image: rupeshs11/knox-chat:fcc859e213d57fe4f91a24d07578296220dc34a5
           ports:
             - containerPort: 5000
           # Health checks for production reliability
