@@ -61,6 +61,10 @@ A production-ready real-time chat app built with **Flask**, **Socket.IO**, and *
 
 ![DevSecOps Architecture](architecture/DevSecops-arch.png)
 
+### GitHub Actions Workflow
+
+![GitHub Actions Flow](architecture/github-actions_flow.png)
+
 ### ArgoCD GitOps Dashboard
 
 ![ArgoCD](architecture/ArgoCD.png)
