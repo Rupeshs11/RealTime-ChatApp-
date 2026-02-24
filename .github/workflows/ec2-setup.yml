@@ -1,50 +1,50 @@
-name: Initial EC2 Setup
+# name: Initial EC2 Setup
 
-on:
-  workflow_dispatch:
+# on:
+#   workflow_dispatch:
 
-jobs:
-  setup:
-    name: Setup EC2 Instance
-    runs-on: ubuntu-latest
+# jobs:
+#   setup:
+#     name: Setup EC2 Instance
+#     runs-on: ubuntu-latest
 
-    steps:
-      - name: Install Docker & Docker Compose
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
-          command_timeout: 5m
-          script: |
-            # Update system
-            sudo yum update -y
+#     steps:
+#       - name: Install Docker & Docker Compose
+#         uses: appleboy/ssh-action@v1.0.3
+#         with:
+#           host: ${{ secrets.EC2_HOST }}
+#           username: ec2-user
+#           key: ${{ secrets.EC2_SSH_KEY }}
+#           command_timeout: 5m
+#           script: |
+#             # Update system
+#             sudo yum update -y
 
-            # Install Docker
-            sudo yum install -y docker
-            sudo systemctl start docker
-            sudo systemctl enable docker
-            sudo usermod -aG docker ec2-user
+#             # Install Docker
+#             sudo yum install -y docker
+#             sudo systemctl start docker
+#             sudo systemctl enable docker
+#             sudo usermod -aG docker ec2-user
 
-            # Install Docker Compose plugin
-            sudo mkdir -p /usr/local/lib/docker/cli-plugins
-            sudo curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 \
-              -o /usr/local/lib/docker/cli-plugins/docker-compose
-            sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+#             # Install Docker Compose plugin
+#             sudo mkdir -p /usr/local/lib/docker/cli-plugins
+#             sudo curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 \
+#               -o /usr/local/lib/docker/cli-plugins/docker-compose
+#             sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
-            # Verify
-            docker --version
-            docker compose version
+#             # Verify
+#             docker --version
+#             docker compose version
 
-            echo "Docker installed!"
+#             echo "Docker installed!"
 
-      - name: Create Project Directory
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            mkdir -p ~/knoxchat/nginx
-            echo "✅ Project directory created!"
-            echo "EC2 is ready for deployment!"
+#       - name: Create Project Directory
+#         uses: appleboy/ssh-action@v1.0.3
+#         with:
+#           host: ${{ secrets.EC2_HOST }}
+#           username: ec2-user
+#           key: ${{ secrets.EC2_SSH_KEY }}
+#           script: |
+#             mkdir -p ~/knoxchat/nginx
+#             echo "✅ Project directory created!"
+#             echo "EC2 is ready for deployment!"
