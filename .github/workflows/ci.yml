@@ -1,0 +1,234 @@
+# DevSecOps & GitOps CI/CD Pipeline — Knox Chat
+
+name: DevSecOps CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "terraform/**"
+      - "monitoring/**"
+      - "screenshots/**"
+      - "grafana-stats/**"
+      - "architecture/**"
+
+  workflow_dispatch:
+    inputs:
+      terraform_action:
+        description: "Terraform Action"
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+
+env:
+  DOCKER_IMAGE: ${{ secrets.DOCKER_USERNAME }}/knox-chat
+
+permissions:
+  contents: write
+  security-events: write
+
+jobs:
+  # TERRAFORM — Infrastructure Provisioning (Manual Trigger Only)
+  terraform:
+    name: "Terraform — ${{ github.event.inputs.terraform_action }}"
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.0
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        if: github.event.inputs.terraform_action != 'destroy'
+        run: terraform plan -no-color
+
+      - name: Terraform Apply
+        if: github.event.inputs.terraform_action == 'apply'
+        run: terraform apply -auto-approve -no-color
+
+      - name: Terraform Destroy
+        if: github.event.inputs.terraform_action == 'destroy'
+        run: terraform destroy -auto-approve -no-color
+
+      - name: Get Cluster Info
+        if: github.event.inputs.terraform_action == 'apply'
+        run: |
+          echo "================================================"
+          echo "EKS Cluster Created Successfully!"
+          echo "================================================"
+          echo ""
+          echo "Configure kubectl:"
+          terraform output -raw configure_kubectl
+          echo ""
+          echo ""
+          echo "Cluster Endpoint:"
+          terraform output -raw cluster_endpoint
+          echo ""
+          echo "================================================"
+
+  # CI STAGE 1 — Lint & Code Quality
+  lint:
+    name: Lint & Code Quality
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Linter
+        run: pip install flake8
+
+      # Stop the build if there are syntax errors or undefined names
+      - name: Lint — Critical Errors
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=venv
+
+      # Warnings only — does not fail the build
+      - name: Lint — Warnings
+        run: flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude=venv
+
+  # CI STAGE 2a — SonarCloud SAST Analysis
+  sonarcloud:
+    name: SonarCloud SAST
+    if: github.event_name == 'push'
+    needs: lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  # CI STAGE 2b — OWASP Dependency-Check (parallel with SonarCloud)
+  owasp:
+    name: OWASP Dependency-Check
+    if: github.event_name == 'push'
+    needs: lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run OWASP Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: "knox-chat"
+          path: "."
+          format: "HTML"
+          args: >
+            --scan requirements.txt
+            --enableExperimental
+
+      - name: Upload OWASP Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: OWASP-Report
+          path: reports/
+
+  # CI STAGE 3 — Build Docker Image, Trivy Scan & Push to DockerHub
+  build-scan-push:
+    name: Build, Scan & Push
+    if: github.event_name == 'push'
+    needs: [sonarcloud, owasp]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build Docker Image (local)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          load: true
+          tags: |
+            ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+            ${{ env.DOCKER_IMAGE }}:latest
+
+      - name: Trivy — Vulnerability Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "${{ env.DOCKER_IMAGE }}:${{ github.sha }}"
+          format: "sarif"
+          output: "trivy-results.sarif"
+          severity: "CRITICAL,HIGH"
+          exit-code: "0" # Set to '1' to fail pipeline on vulnerabilities
+
+      - name: Upload Trivy Results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-results.sarif"
+
+      - name: Push Docker Image to DockerHub
+        run: |
+          docker push ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+          docker push ${{ env.DOCKER_IMAGE }}:latest
+
+  # CD STAGE — Update K8s Manifest for ArgoCD GitOps
+  update-manifest:
+    name: Update K8s Manifest (GitOps)
+    if: github.event_name == 'push'
+    needs: build-scan-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Update Deployment Image Tag
+        run: |
+          echo "Updating knoxchat-deployment.yml with new image tag: ${{ github.sha }}"
+          sed -i "s|image: .*/knox-chat:.*|image: ${{ env.DOCKER_IMAGE }}:${{ github.sha }}|g" k8s/knoxchat-deployment.yml
+          cat k8s/knoxchat-deployment.yml | grep "image:"
+
+      - name: Commit & Push Updated Manifest
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add k8s/knoxchat-deployment.yml
+          git diff --staged --quiet || git commit -m "chore: update image to ${{ github.sha }} [skip ci]"
+          git push

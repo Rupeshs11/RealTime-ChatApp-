@@ -40,3 +40,11 @@ Thumbs.db
 
 # Minikube manifest (old, moved to k8s/)
 minikube-manifest/
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/*.tfplan
+terraform/.terraform.lock.hcl
+terraform/crash.log

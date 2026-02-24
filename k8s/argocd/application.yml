@@ -1,0 +1,29 @@
+# ──────────────────────────────────────────────────────────────
+# ArgoCD Application — Knox Chat
+# ──────────────────────────────────────────────────────────────
+# This tells ArgoCD to watch the k8s/ directory in our Git repo
+# and auto-sync any changes to the EKS cluster.
+# ──────────────────────────────────────────────────────────────
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: knoxchat
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/Rupeshs11/RealTime-ChatApp-.git
+    targetRevision: main
+    path: k8s
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: knoxchat
+
+  syncPolicy:
+    automated:
+      selfHeal: true # Auto-fix manual changes in cluster
+      prune: true # Delete resources removed from Git
+    syncOptions:
+      - CreateNamespace=true
