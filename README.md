@@ -388,6 +388,6 @@ RealTime-ChatApp/
 1. Open the app → **Sign up** with a username and password
 2. **Login** with your credentials
 3. Enter a **room name** (share it with friends!)
-4. Start chatting — messages persist across refreshes 🎉
+4. Start chatting — messages persist across refreshes 
 
 ---
